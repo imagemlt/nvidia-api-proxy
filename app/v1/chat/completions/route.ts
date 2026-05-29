@@ -26,6 +26,7 @@ export async function POST(request: Request) {
         'Accept': request.headers.get('accept') || 'application/json',
       },
       body: body,
+      signal: AbortSignal.timeout(110000), // 110s timeout
     };
 
     const response = await fetch(targetUrl, fetchOptions);
