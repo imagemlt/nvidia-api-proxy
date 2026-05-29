@@ -17,42 +17,48 @@ export async function POST(request: Request) {
     // 获取客户端请求体
     const body = await request.text();
 
+    // 检测是否为流式请求
+    let bodyStr = body;
+    let isStream = false;
+    try {
+      const bodyJson = JSON.parse(body);
+      isStream = bodyJson.stream === true;
+    } catch {}
+
     // 构造转发请求
     const fetchOptions: RequestInit = {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
         'Content-Type': request.headers.get('content-type') || 'application/json',
-        'Accept': request.headers.get('accept') || 'application/json',
+        'Accept': isStream ? 'text/event-stream' : 'application/json',
       },
       body: body,
-      signal: AbortSignal.timeout(110000), // 110s timeout
     };
 
     const response = await fetch(targetUrl, fetchOptions);
 
-    // 处理流式响应
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('text/event-stream')) {
-      // 返回流式响应
+    // 流式响应直接转发
+    if (isStream && response.ok) {
       return new Response(response.body, {
         status: response.status,
         headers: {
-          'Content-Type': contentType,
+          'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
         },
       });
-    } else {
-      // 非流式响应，读取完整内容
-      const data = await response.text();
-      return new Response(data, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
-      });
     }
+
+    // 非流式响应
+    const contentType = response.headers.get('content-type');
+    const data = await response.text();
+    return new Response(data, {
+      status: response.status,
+      headers: {
+        'Content-Type': contentType || 'application/json',
+      },
+    });
   } catch (error: any) {
     console.error('Proxy error:', error);
     return new Response(JSON.stringify({ error: 'Proxy request failed', details: error.message }), {
