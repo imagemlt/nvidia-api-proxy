@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       headers: {
         'Authorization': authHeader,
         'Content-Type': request.headers.get('content-type') || 'application/json',
+        'Accept': request.headers.get('accept') || 'application/json',
       },
       body: body,
     };
