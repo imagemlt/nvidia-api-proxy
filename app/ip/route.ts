@@ -2,7 +2,10 @@ export async function GET(_request: Request) {
   const targetUrl = 'https://ifconfig.me';
 
   try {
-    const response = await fetch(targetUrl, { method: 'GET' });
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': 'curl' },
+    });
     const contentType = response.headers.get('content-type') || 'text/plain; charset=utf-8';
     const data = await response.text();
 
